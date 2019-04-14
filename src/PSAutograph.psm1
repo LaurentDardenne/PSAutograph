@@ -1,7 +1,7 @@
 ﻿# PSAutograph.psm1
 # ------------------------------------------------------------------
 # Depend : https://github.com/Microsoft/automatic-graph-layout
-#    see : http://blogs.msdn.com/b/powershell/archive/2007/11/27/graphing-with-glee.aspx
+#    see : https://devblogs.microsoft.com/powershell/graphing-with-glee/
 # ------------------------------------------------------------------
 
 Import-LocalizedData -BindingVariable MSaglMsgs -Filename  PSAutographLocalizedData.psd1 -EA Stop
@@ -60,7 +60,7 @@ function Set-MSaglGraphObject{
 #Utilise une hashtable.
 #Chaque nom de clé est un nom de type d'un objet à traiter, sa valeur est une hashtable possédant les clés suivantes :
 # Follow_Property  : est un nom d'une propriété d'un objet, son contenu pouvant pointer sur un autre objet (de même type ou pas) ou être $null
-# Follow_Label     : libellé de la relation (arête) entre deux  noeud (sommet) du graphe
+# Follow_Label     : libellé de la relation (arête/edge) entre deux noeuds (sommet/vertex) du graphe
 # Label_Property   : Nom de la propriété d'un objet contenant le libellé de chaque noeud (sommet) du graphe
 
 # Exemple pour un objet service :
@@ -91,20 +91,20 @@ function Set-MSaglGraphObject{
       foreach ($property in $o.$($oMap.Follow_Property))
       {   
         $pMap = $ObjectMap.$($property.PsTypeNames[0])
-         #Le type est-il connue dans objectMap ?
         if ($pmap)
         {
+           #Le type est  connue dans objectMap
            #Ajoute une liaison (arête) entre deux noeuds
            # AddEdge(string source, string edgeLabel, string target)
           [void]$graph.AddEdge($o.$($oMap.Label_Property), $oMap.Follow_Label, $Property.$($pMap.Label_Property))
           
-           #Parcourt de l'arbre 
+           #Parcourt du graphe
           if ($pMap.Follow_Property)
           { Set-MSaglGraphObject -graph $graph -inputObject $Property -ObjectMap $ObjectMap   }
         }
         else
         { 
-          #si le type n'est pas référencé dans objectMap, alors  
+           #Le type n'est pas référencé dans objectMap, alors  
           # le champ target contient le nom du type de l'objet
           [Void]$graph.AddEdge($o.$($oMap.Label_Property), $oMap.Follow_Label, $Property.ToString())   
         }
