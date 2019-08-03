@@ -73,12 +73,17 @@ function Set-MSaglGraphObject{
 # } #$ObjectMap
 
   param(
+    #L'objet Microsoft.MSagl.Drawing.Graph peuplé avec $InputObject selon le paramètrage défini dans $objectmap
     [Microsoft.MSagl.Drawing.Graph] $Graph,
-    $inputObject,
+    
+    # Null est autorisé, dans ce cas le graph est vide la visualisation n'affichera rien.
+    $InputObject,
+
+    #Hashtable de définition des relations
     [HashTable] $objectMap
   )
-  
-  foreach ($o in @($inputObject))
+
+  foreach ($o in $InputObject)
   {   
      #Recherche l'association pour l'objet courant
     $oMap = $ObjectMap.$($o.PsTypenames[0])
@@ -98,7 +103,7 @@ function Set-MSaglGraphObject{
            # AddEdge(string source, string edgeLabel, string target)
           [void]$graph.AddEdge($o.$($oMap.Label_Property), $oMap.Follow_Label, $Property.$($pMap.Label_Property))
           
-           #Parcourt du graphe
+           #Parcourt du graphe ( i.e des objets reliés au premier)
           if ($pMap.Follow_Property)
           { Set-MSaglGraphObject -graph $graph -inputObject $Property -ObjectMap $ObjectMap   }
         }
