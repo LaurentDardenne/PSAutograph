@@ -57,125 +57,146 @@ function Set-MSaglNodeAttribute{
 }
 
 function Set-MSaglGraphObject{
-#Utilise une hashtable.
-#Chaque nom de clé est un nom de type d'un objet à traiter, sa valeur est une hashtable possédant les clés suivantes :
-# Follow_Property  : est un nom d'une propriété d'un objet, son contenu pouvant pointer sur un autre objet (de même type ou pas) ou être $null
-# Follow_Label     : libellé de la relation (arête/edge) entre deux noeuds (sommet/vertex) du graphe
-# Label_Property   : Nom de la propriété d'un objet contenant le libellé de chaque noeud (sommet) du graphe
-
-# Exemple pour un objet service :
-# $ObjectMap = @{
-#     "System.ServiceProcess.ServiceController" = @{
-#         Follow_Property = "ServicesDependedOn"
-#         Follow_Label = "DependsUpon"    #Nom de la relation 
-#         Label_Property = "Name"         #Nom du service
-#         }
-# } #$ObjectMap
-
-  param(
-    #L'objet Microsoft.MSagl.Drawing.Graph peuplé avec $InputObject selon le paramètrage défini dans $objectmap
-    [Microsoft.MSagl.Drawing.Graph] $Graph,
-    
-    # Null est autorisé, dans ce cas le graph est vide la visualisation n'affichera rien.
-    $InputObject,
-
-    #Hashtable de définition des relations
-    [HashTable] $objectMap
-  )
-
-  foreach ($o in $InputObject)
-  {   
-     #Recherche l'association pour l'objet courant
-    $oMap = $ObjectMap.$($o.PsTypenames[0])
-    if ($oMap)
-    {
-       #Ajoute un noeud au graphe
-      $node = $graph.AddNode($o.$($oMap.Label_Property))
-      $node.UserData = $o
-
-      foreach ($property in $o.$($oMap.Follow_Property))
-      {   
-        $pMap = $ObjectMap.$($property.PsTypeNames[0])
-        if ($pmap)
-        {
-           #Le type est  connue dans objectMap
-           #Ajoute une liaison (arête) entre deux noeuds
-           # AddEdge(string source, string edgeLabel, string target)
-          [void]$graph.AddEdge($o.$($oMap.Label_Property), $oMap.Follow_Label, $Property.$($pMap.Label_Property))
-          
-           #Parcourt du graphe ( i.e des objets reliés au premier)
-          if ($pMap.Follow_Property)
-          { Set-MSaglGraphObject -graph $graph -inputObject $Property -ObjectMap $ObjectMap   }
-        }
-        else
-        { 
-           #Le type n'est pas référencé dans objectMap, alors  
-          # le champ target contient le nom du type de l'objet
-          [Void]$graph.AddEdge($o.$($oMap.Label_Property), $oMap.Follow_Label, $Property.ToString())   
-        }
-      }
-    }
-  }
-}
-
-function Set-MSaglGraphObjectWithNode{
-  param(
-    #L'objet Microsoft.MSagl.Drawing.Graph peuplé avec $InputObject selon le paramètrage défini dans $objectmap
-    [Microsoft.MSagl.Drawing.Graph] $Graph,
-    
-    # Null est autorisé, dans ce cas le graph est vide la visualisation n'affichera rien.
-    $InputObject,
-
-    #Hashtable de définition des relations
-    [HashTable] $objectMap
-  )
-
-  foreach ($o in $InputObject)
-  {   
-     #Recherche l'association pour l'objet courant
-    $oMap = $ObjectMap.$($o.PsTypenames[0])
-    if ($oMap)
-    {
-       #Ajoute un noeud au graphe
-      $Label=$oMap.Label_Property
-      $ID=$oMap.ID_Property
-      $FollowProperty=$oMap.Follow_Property
-      $FollowLabel=$oMap.Follow_Label
-      Write-Debug "Set-MSaglGraphObjectWithNode: oMap '$ID' '$Label' '$FollowProperty' '$Followlabel'"
-      Write-Debug "Set-MSaglGraphObjectWithNode: o '$($o.$ID)' '$($o.$Label)'"
-
-      $Node= [Microsoft.Msagl.Drawing.Node]::New($o.$ID)
-      $Node.Label=$o.$Label
-      $Node.UserData = $o
-      Write-debug "Node=$($node|Select-Object Id,labelText|out-string)"
-      $graph.AddNode($Node) > $null
-
-      foreach ($property in $o.$FollowProperty)
-      {   
-        $pMap = $ObjectMap.$($property.PsTypeNames[0])
-        if ($pmap)
-        {
-           #Le type est  connue dans objectMap
-           #Ajoute une liaison (arête) entre deux noeuds
-           # AddEdge(string source, string edgeLabel, string target)
-           Write-Debug "Set-MSaglGraphObjectWithNode: Add '$($o.$ID)' '$FollowLabel' '$($Property.$($pMap.ID_Property))'"
-          [void]$graph.AddEdge($o.$ID, $FollowLabel, $Property.$($pMap.ID_Property))
-          #todo del [void]$graph.AddEdge($o.$($oMap.Label_Property), $oMap.Follow_Label, $Property.$($pMap.Label_Property))
-          
-           #Parcourt du graphe ( i.e des objets reliés au premier)
-          if ($pMap.Follow_Property)
-          { Set-MSaglGraphObject -graph $graph -InputObject $Property -ObjectMap $ObjectMap   }
-        }
-        else
-        { 
-           #Le type n'est pas référencé dans objectMap, alors  
-          # le champ target contient le nom du type de l'objet
-          Write-Debug "Set-MSaglGraphObjectWithNode: Add not ref '$($o.$ID)' '$FollowLabel' '$($Property.ToString())'"
-          [Void]$graph.AddEdge($o.$ID, $FollowLabel, $Property.ToString())   
+  #Utilise une hashtable.
+  #Chaque nom de clé est un nom de type d'un objet à traiter, sa valeur est une hashtable possédant les clés suivantes :
+  # Follow_Property  : est un nom d'une propriété d'un objet, son contenu pouvant pointer sur un autre objet (de même type ou pas) ou être $null
+  # Follow_Label     : libellé de la relation (arête/edge) entre deux noeuds (sommet/vertex) du graphe
+  # Label_Property   : Nom de la propriété d'un objet contenant le libellé de chaque noeud (sommet) du graphe
+  
+  # Exemple pour un objet service :
+  # $ObjectMap = @{
+  #     "System.ServiceProcess.ServiceController" = @{
+  #         Follow_Property = "ServicesDependedOn"
+  #         Follow_Label = "DependsUpon"    #Nom de la relation 
+  #         Label_Property = "Name"         #Nom du service
+  #         }
+  # } #$ObjectMap
+  
+    param(
+      #L'objet Microsoft.MSagl.Drawing.Graph peuplé avec $InputObject selon le paramètrage défini dans $objectmap
+      [Microsoft.MSagl.Drawing.Graph] $Graph,
+      
+      # Null est autorisé, dans ce cas le graph est vide la visualisation n'affichera rien.
+      $InputObject,
+  
+      #Hashtable de définition des relations
+      [HashTable] $objectMap
+    )
+    Write-Debug "Set-MSaglGraphObject: call"
+    foreach ($o in $InputObject)
+    {   
+       #Recherche l'association pour l'objet courant
+      $oMap = $ObjectMap.$($o.PsTypenames[0])
+      if ($oMap)
+      {
+        #Ajoute un noeud au graphe
+        $Label=$oMap.Label_Property
+        $FollowProperty=$oMap.Follow_Property
+        $FollowLabel=$oMap.Follow_Label
+        Write-Debug "Set-MSaglGraphObject: oMap  '$Label' '$FollowProperty' '$Followlabel'"
+        Write-Debug "Set-MSaglGraphObject: CreateNode '$($o.$Label)'"               
+        
+        $node = $graph.AddNode($o.$Label)
+        $node.UserData = $o
+   
+        Write-debug "foreach on o '$FollowProperty' -> $($o.$FollowProperty)"
+        foreach ($property in $o.$FollowProperty)
+        {   
+          Write-Debug "Set-MSaglGraphObject:  property ='$property'"
+          $pMap = $ObjectMap.$($property.PsTypeNames[0])
+          if ($pmap)
+          {
+            Write-Debug "Set-MSaglGraphObject:  pMmap.Label_property ='$($pMap.Label_Property)'"
+             #Le type est  connue dans objectMap
+             #Ajoute une liaison (arête) entre deux noeuds
+             # AddEdge(string source, string edgeLabel, string target)
+            Write-Debug "Set-MSaglGraphObject: Add '$($o.$Label)' '$FollowLabel' '$($Property.$($pMap.Label_Property))'"
+            [void]$graph.AddEdge($o.$Label, $FollowLabel, $Property.$($pMap.Label_Property))
+            
+             #Parcourt du graphe ( i.e des objets reliés au premier)
+            if ($pMap.Follow_Property)
+            { Set-MSaglGraphObject -graph $graph -inputObject $Property -ObjectMap $ObjectMap   }
+          }
+          else
+          { 
+             #Le type n'est pas référencé dans objectMap, alors  
+            # le champ target contient le nom du type de l'objet
+            Write-Debug "Set-MSaglGraphObject: Add not ref '$($o.$Label)' '$FollowLabel' '$($Property.ToString())'"
+            [Void]$graph.AddEdge($o.$Label, $FollowLabel, $Property.ToString())   
+          }
         }
       }
     }
   }
+  
+  function Set-MSaglGraphObjectWithNode{
+    param(
+      #L'objet Microsoft.MSagl.Drawing.Graph peuplé avec $InputObject selon le paramètrage défini dans $objectmap
+      [Microsoft.MSagl.Drawing.Graph] $Graph,
+      
+      # Null est autorisé, dans ce cas le graph est vide la visualisation n'affichera rien.
+      $InputObject,
+  
+      #Hashtable de définition des relations
+      [HashTable] $objectMap
+    )
+
+    Write-Debug "Set-MSaglGraphObjectWithNode: call"
+    foreach ($o in $InputObject)
+    {   
+       #Recherche l'association pour l'objet courant
+      $oMap = $ObjectMap.$($o.PsTypenames[0])
+      if ($oMap)
+      {
+         #Ajoute un noeud au graphe
+        $Label=$oMap.Label_Property
+        $ID=$oMap.ID_Property
+        $FollowProperty=$oMap.Follow_Property
+        $FollowLabel=$oMap.Follow_Label
+        Write-Debug "Set-MSaglGraphObjectWithNode: oMap '$ID' '$Label' '$FollowProperty' '$Followlabel'"
+        Write-Debug "Set-MSaglGraphObjectWithNode: Create Node '$($o.$ID)' '$($o.$Label)'"
+  
+        $Node= [Microsoft.Msagl.Drawing.Node]::New($o.$ID)
+        $Node.LabelText=$o.$Label
+        $Node.UserData = $o
+        $graph.AddNode($Node) > $null
+
+        Write-debug "foreach on o '$FollowProperty' -> $($o.$FollowProperty)"
+        foreach ($property in $o.$FollowProperty)
+        {   
+          Write-Debug "Set-MSaglGraphObjectWithNode:  property ='$property'"
+          $pMap = $ObjectMap.$($property.PsTypeNames[0])
+         
+          if ($pmap)
+          {
+            Write-Debug "Set-MSaglGraphObjectWithNode:  pMmap.ID_property ='$($pMap.ID_Property)'"
+            #Le type est  connue dans objectMap
+             #Ajoute une liaison (arête) entre deux noeuds
+             # AddEdge(string source, string edgeLabel, string target)
+             Write-Debug "Set-MSaglGraphObjectWithNode: Add '$($o.$ID)' '$FollowLabel' '$($Property.$($pMap.ID_Property))'"
+  
+              #On crée le noeud sinon AddEdge le crée mais, à priori et pour ici, pas de la 'bonne manière'.
+              #todo $graph.FindNode(($Property.$($pMap.ID_Property)))
+             $Node= [Microsoft.Msagl.Drawing.Node]::New( $Property.$($pMap.ID_Property))
+             $Node.Labeltext= $Property.$($pMap.Label_Property)
+             $Node.UserData = $Property
+             $graph.AddNode($Node) > $null
+             [void]$graph.AddEdge($o.$ID, $FollowLabel, $Property.$($pMap.ID_Property))
+  
+             #Parcourt du graphe ( i.e des objets reliés au premier)
+            if ($pMap.Follow_Property)
+            { Set-MSaglGraphObjectWithNode -graph $graph -InputObject $Property -ObjectMap $ObjectMap   }
+          }
+          else
+          { 
+             #Le type n'est pas référencé dans objectMap, alors  
+             # le champ target contient le nom du type de l'objet
+            Write-Debug "Set-MSaglGraphObjectWithNode: Add not ref '$($o.$ID)' '$FollowLabel' '$($Property.ToString())'"
+            [Void]$graph.AddEdge($o.$ID, $FollowLabel, $Property.ToString())   
+          }
+        }
+      }
+    }
 }
 
 #Bug du parser ou beta ? 
