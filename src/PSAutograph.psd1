@@ -2,7 +2,7 @@
 @{
 	ModuleToProcess = 'PSAutoGraph.psm1'
 
-	ModuleVersion = '1.2.1'
+	ModuleVersion = '1.2.2'
  
 	GUID = 'c39c549d-082e-473c-9a4b-331c8ac85807'
 	
