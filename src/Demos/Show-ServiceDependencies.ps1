@@ -1,4 +1,5 @@
 ﻿
+#See https://devblogs.microsoft.com/powershell/graphing-with-glee/
 Import-Module PSAutograph
 
 $viewer = New-MSaglViewer
@@ -11,6 +12,6 @@ $ObjectMap = @{
 }
 
 $graph = New-MSaglGraph
-Set-MSaglGraphObject -Graph $graph -InputObject (gsv net*p*) -ObjectMap $ObjectMap 
+Set-MSaglGraphObject -Graph $graph -InputObject (gsv net*p*) -ObjectMap $ObjectMap
 
 $resultModal=Show-MSaglGraph $viewer $graph
