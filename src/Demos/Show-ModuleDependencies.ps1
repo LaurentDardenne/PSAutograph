@@ -305,9 +305,10 @@ try {
    }
 
    $graph = New-MSaglGraph
+   #Change the layout method to 'IncrementalLayout'
+   $Graph.LayoutAlgorithmSettings =[Microsoft.Msagl.Layout.Incremental.FastIncrementalLayoutSettings]::new()
    Set-MSaglGraphObject -Graph $graph -InputObject ($Result) -objectMap $ObjectMap
 
-   #Change the layout method in IHM to 'IncrementalLayout'
    Show-MSaglGraph $viewer $graph > $null
 } finally {
  if ($null -ne $Viewer)
